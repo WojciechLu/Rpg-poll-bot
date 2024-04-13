@@ -3,14 +3,17 @@ import asyncio
 import os
 import nextcord
 from nextcord.ext import commands
-from nextcord import Client, Intents, Interaction, SlashOption
+from nextcord import Client, Intents, Interaction, SlashOption, Embed, Color
 import logging
 import sqlite3
 from typing import Optional
-import discord
 from dotenv import load_dotenv
 from Helpers.helper import Helper
+from Helpers.poll import Poll, PollMedia, PollAnswer
+from Helpers.datetimeHelper import next_weekday, translate_weekday
 import datetime
+import requests
+import json
 
 # consts
 if load_dotenv():
@@ -56,16 +59,11 @@ async def on_ready():
 # bot commands
 
 @bot.slash_command(guild_ids=[1030024780314845234, 693775903532253254, 870607350946463795])
-async def ping(ctx):
-    await ctx.send("Pong")
+async def ping(interaction: Interaction):
+    await interaction.response.send_message("Pong")
 
 @bot.slash_command(guild_ids=[1030024780314845234, 693775903532253254, 870607350946463795])
-async def members(interaction: Interaction, person: str, description: str):
-    names = [x.name for x in ctx.guild.members]
-    await ctx.send(names)
-
-@bot.slash_command(guild_ids=[1030024780314845234, 693775903532253254, 870607350946463795])
-async def create_rpg_poll(interaction: Interaction, rpg_system: Optional[str]):
+async def find_date_message_type(interaction: Interaction, rpg_system: Optional[str]):
     """Create Rpg poll for next week
 
     Parameters
@@ -77,25 +75,76 @@ async def create_rpg_poll(interaction: Interaction, rpg_system: Optional[str]):
     """
     if rpg_system is None:
         rpg_system = "DnD"
-    some_url = "https://fallendeity.github.io/discord.py-masterclass/"
-    embed = discord.Embed(
-        title="Title",
-        description="Description",
-        url=some_url,
-        color=discord.Color.random(),
-        timestamp=datetime.datetime.utcnow()
+
+    embed = nextcord.Embed(
+        title=f'Game finding for next week for {rpg_system}',
+        color=nextcord.Color.random(),
+        timestamp=datetime.datetime.now()
     )
-    embed.add_field(name="Field name", value="Color sets that <")
-    embed.add_field(name="Field name", value="Color should be an integer or discord.Colour object")
-    embed.add_field(name="Field name", value="You can't set image width/height")
-    embed.add_field(name="Non-inline field name", value="The number of inline fields that can shown on the same row is limited to 3", inline=False)
-    embed.set_author(name="Author", url=some_url,
-                     icon_url="https://cdn.discordapp.com/attachments/1112418314581442650/1124820259384332319/fd0daad3d291ea1d.png")
-    embed.set_image(url="https://cdn.discordapp.com/attachments/1028706344158634084/1124822236801544324/ea14e81636cb2f1c.png")
-    embed.set_thumbnail(url="https://media.discordapp.net/attachments/1112418314581442650/1124819948317986926/db28bfb9bfcdd1f6.png")
-    embed.set_footer(text="Footer", icon_url="https://cdn.discordapp.com/attachments/1112418314581442650/1124820375587528797/dc4b182a87ecee3d.png")
+
+    emoji=["🔴","🟠","🟡","🟢","🔵"]
+    todayDate = datetime.date.today()
+    for x in range(len(emoji)):
+        day = next_weekday(todayDate, x)
+        embed.add_field(name="", value=f"**{day.strftime("%d.%m")}** {translate_weekday(day.weekday())} - {emoji[x]}", inline=False)
+    
     await interaction.response.send_message(embed=embed)
 
+    message: nextcord.Message
+    async for message in interaction.channel.history():
+        if not message.embeds:
+            continue
+        if message.embeds[0].title == embed.title and message.embeds[0].colour == embed.colour:
+            vote = message
+            break
+    else:
+        return
+
+    for x in emoji:
+        await vote.add_reaction(x)
+
+@bot.slash_command(guild_ids=[1030024780314845234, 693775903532253254, 870607350946463795])
+async def find_date_poll_type(interaction: Interaction):
+    """[NOT SUPPORTED YET] Create Rpg poll for next week
+
+    Parameters
+    ----------
+    interaction: Interaction
+        The interaction object
+    ranking_name: Optional[str]
+        Type ranking name or leave blank if there is only 1 ranking in your server!
+    """
+
+    #poll types is not suppoerted
+    return await interaction.response.send_message("Not supporting yet")
     
+    question = PollMedia("Question test")
+    aswersList = [PollAnswer(PollMedia("Test")), PollAnswer(PollMedia("Test2"))]
+    poll = Poll(question, aswersList, 24, True)
+
+    channelId = interaction.channel_id
+    body = {"poll": json.loads(poll.toJSON())}
+    headers = {'Authorization': f'Bot {TOKEN}'}
+
+    jsonTest = json.loads(json.dumps({
+        "poll": {
+            "question": {
+            "text": "how much wood would a woodchuck chuck if a woodchuck would chuck wood?"
+            },
+            "answers": [
+            {
+                "poll_media": {
+                "text": "all the wood"
+                }
+            },
+            ],
+            "duration": 24,
+            "allow_multiselect": False,
+            "layout_type": 1
+        }
+    }))
+
+    resp = requests.post(f'https://discord.com/api/v10/channels/{channelId}/messages', json=body, headers=headers)
+    await interaction.response.send_message("Done")
 
 bot.run(TOKEN)
