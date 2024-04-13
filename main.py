@@ -10,7 +10,7 @@ from typing import Optional
 from dotenv import load_dotenv
 from Helpers.helper import Helper
 from Helpers.poll import Poll, PollMedia, PollAnswer
-from Helpers.datetimeHelper import next_weekday, translate_weekday
+from Helpers.datetimeHelper import next_weekday, translate_weekday, get_next_week_range_format
 import datetime
 import requests
 import json
@@ -73,17 +73,17 @@ async def find_date_message_type(interaction: Interaction, rpg_system: Optional[
     ranking_name: Optional[str]
         Type ranking name or leave blank if there is only 1 ranking in your server!
     """
+    emoji=["🔴","🟠","🟡","🟢","🔵"]
+    todayDate = datetime.date.today()
+
     if rpg_system is None:
         rpg_system = "DnD"
 
     embed = nextcord.Embed(
-        title=f'Game finding for next week for {rpg_system}',
+        title=f'Game finding for {get_next_week_range_format(todayDate)} week for {rpg_system}',
         color=nextcord.Color.random(),
         timestamp=datetime.datetime.now()
     )
-
-    emoji=["🔴","🟠","🟡","🟢","🔵"]
-    todayDate = datetime.date.today()
     for x in range(len(emoji)):
         day = next_weekday(todayDate, x)
         embed.add_field(name="", value=f"**{day.strftime("%d.%m")}** {translate_weekday(day.weekday())} - {emoji[x]}", inline=False)
