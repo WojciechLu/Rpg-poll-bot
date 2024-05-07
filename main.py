@@ -14,6 +14,7 @@ from Helpers.datetimeHelper import next_weekday, translate_weekday, get_next_wee
 import datetime
 import requests
 import json
+from datetime import timedelta, date
 
 # consts
 if load_dotenv():
@@ -79,6 +80,7 @@ async def find_date_message_type(interaction: Interaction, role: Role, rpg_syste
     message = await interaction.response.send_message(f'<@&{role.id}>', delete_after=True, allowed_mentions=nextcord.AllowedMentions(roles=True))
     emoji=["🔴","🟠","🟡","🟢","🔵"]
     todayDate = datetime.date.today()
+    nextMonady = next_weekday(todayDate, 0)
 
     if rpg_system is None:
         rpg_system = "DnD"
@@ -90,7 +92,7 @@ async def find_date_message_type(interaction: Interaction, role: Role, rpg_syste
     )
     embed.add_field(name="", value=f'{role.mention} pora na wybór dnia na kolejny tydzień! Gramy w **{rpg_system}**.')
     for x in range(len(emoji)):
-        day = next_weekday(todayDate, x)
+        day = nextMonady + timedelta(days=x)
         embed.add_field(name="", value=f"**{day.strftime("%d.%m")}** {translate_weekday(day.weekday())} - {emoji[x]}", inline=False)
     
     emoji.append("😔")
