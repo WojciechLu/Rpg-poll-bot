@@ -14,13 +14,13 @@ class Poll:
           sort_keys=True,
           indent=4)
 
-class PollMedia:
-  def __init__(self, text):
+class PollMedia:  
+  def __init__(self, text, emoji = None):
     self.text = text
-  
-  # def __init__(self, text, emoji):
-  #   self.text = text
-  #   self.emoji = emoji
+    if emoji is not None:
+      self.emoji = {
+        "name": emoji
+      }
 
 class PollAnswer:
   def __init__(self, poll_media):

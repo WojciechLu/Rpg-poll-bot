@@ -131,14 +131,18 @@ async def find_date_poll_type(interaction: Interaction, role: Role, rpg_system: 
 
     message = await interaction.response.send_message(f'{role.mention} pora na wybór dnia na kolejny tydzień **{get_next_week_range_format(todayDate)}**! Gramy w **{rpg_system}**.', allowed_mentions=nextcord.AllowedMentions(roles=True))
     nextMonady = next_weekday(todayDate, 0)
-    daysInPool = 7 if weekend else 5; 
+    
+    emoji=["🔴","🟠","🟡","🟢","🔵"]
+    if weekend:
+        emoji.append("🟣")
+        emoji.append("⚪")
 
     question = PollMedia(f'Jaki termin Ci pasuje?')
     aswersList = []
-    for x in range(daysInPool):
+    for x in range(len(emoji)):
         day = nextMonady + timedelta(days=x)
-        aswersList.append(PollAnswer(PollMedia(f"{translate_weekday(day.weekday())} ({day.strftime("%d.%m")})")))
-    aswersList.append(PollAnswer(PollMedia(f"Skip ten tydzień 😔")))
+        aswersList.append(PollAnswer(PollMedia(f"{translate_weekday(day.weekday())} ({day.strftime("%d.%m")})", emoji[x])))
+    aswersList.append(PollAnswer(PollMedia(f"Skip ten tydzień", "😔")))
 
     poll = Poll(question, aswersList, 7 * 24, True)
 
