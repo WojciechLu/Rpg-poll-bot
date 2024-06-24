@@ -111,8 +111,8 @@ async def find_date_message_type(interaction: Interaction, role: Role, rpg_syste
             return
 
 @bot.slash_command(guild_ids=[1030024780314845234, 693775903532253254, 870607350946463795])
-async def find_date_poll_type(interaction: Interaction):
-    """[NOT SUPPORTED YET] Create Rpg poll for next week
+async def find_date_poll_type(interaction: Interaction, role: Role, rpg_system: str, weekend: Optional[bool]):
+    """Create Rpg poll for next week
 
     Parameters
     ----------
@@ -122,36 +122,30 @@ async def find_date_poll_type(interaction: Interaction):
         Type ranking name or leave blank if there is only 1 ranking in your server!
     """
 
-    #poll types is not suppoerted
-    return await interaction.response.send_message("Not supporting yet")
-    
-    question = PollMedia("Question test")
-    aswersList = [PollAnswer(PollMedia("Test")), PollAnswer(PollMedia("Test2"))]
-    poll = Poll(question, aswersList, 24, True)
+    if rpg_system is None:
+        rpg_system = "DnD"
+
+    if weekend is None:
+        weekend = False
+    todayDate = datetime.date.today()
+
+    message = await interaction.response.send_message(f'{role.mention} pora na wybór dnia na kolejny tydzień **{get_next_week_range_format(todayDate)}**! Gramy w **{rpg_system}**.', allowed_mentions=nextcord.AllowedMentions(roles=True))
+    nextMonady = next_weekday(todayDate, 0)
+    daysInPool = 7 if weekend else 5; 
+
+    question = PollMedia(f'Jaki termin Ci pasuje?')
+    aswersList = []
+    for x in range(daysInPool):
+        day = nextMonady + timedelta(days=x)
+        aswersList.append(PollAnswer(PollMedia(f"{translate_weekday(day.weekday())} ({day.strftime("%d.%m")})")))
+    aswersList.append(PollAnswer(PollMedia(f"Skip ten tydzień 😔")))
+
+    poll = Poll(question, aswersList, 7 * 24, True)
 
     channelId = interaction.channel_id
     body = {"poll": json.loads(poll.toJSON())}
     headers = {'Authorization': f'Bot {TOKEN}'}
 
-    jsonTest = json.loads(json.dumps({
-        "poll": {
-            "question": {
-            "text": "how much wood would a woodchuck chuck if a woodchuck would chuck wood?"
-            },
-            "answers": [
-            {
-                "poll_media": {
-                "text": "all the wood"
-                }
-            },
-            ],
-            "duration": 24,
-            "allow_multiselect": False,
-            "layout_type": 1
-        }
-    }))
-
     resp = requests.post(f'https://discord.com/api/v10/channels/{channelId}/messages', json=body, headers=headers)
-    await interaction.response.send_message("Done")
 
 bot.run(TOKEN)
